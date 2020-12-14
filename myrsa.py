@@ -68,21 +68,3 @@ def make_key_pair(length):
                              "and e={!r}".format(p, q, e))
 
     return (p * q, e), (p * q, d)
-
-
-class PublicKey:
-    def __init__(self, n, e):
-        self.n = n
-        self.e = e
-
-    def encrypt(self, x):
-        return pow(x, self.e, self.n)
-
-
-class PrivateKey:
-    def __init__(self, n, d):
-        self.n = n
-        self.d = d
-
-    def decrypt(self, x):
-        return pow(x, self.d, self.n)
