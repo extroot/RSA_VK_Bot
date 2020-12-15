@@ -1,15 +1,14 @@
 import os
-import random
 import logging
 
-from vkbottle.bot import Bot
-from vkbottle.bot import Message
 from vkbottle import Text
 from vkbottle import Keyboard
 from vkbottle import CtxStorage
 from vkbottle import BaseStateGroup
+from vkbottle.bot import Bot
+from vkbottle.bot import Message
 
-from myrsa import make_key_pair
+from myrsa import make_key_pair, encoding
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger()
@@ -17,13 +16,14 @@ logger = logging.getLogger()
 start_message = "Привет! Я бот-помощник, который может кодировать информацию с помощью простейшего RSA алгоритма."
 back_message = "Выберите действие:"
 unknown_message = "Извини, я тебя не понимаю, попробуй еще раз."
+error_message = "Что-то пошло не так, попробуйте еще раз"
 
 generate_message = "Сгенерирован публичный ключ: {}; приватный ключ: {}."
 
 decrypt_key_message = "Введите приватный ключ (2 числа через пробел): "
 decrypt_text_message = "Введите зашифрованный текст: "
 decrypt_out_message = "Расшифрованный текст: {}"
-error_message = "Некоректный ответ, попробуй еще раз:"
+wrong_message = "Некоректный ответ, попробуй еще раз:"
 
 encrypt_key_message = "Введите публичный ключ (2 числа через пробел): "
 encrypt_text_message = "Введите текст: "
@@ -65,8 +65,12 @@ async def back_handler(message: Message):
 @bot.on.message(state=MenuState.INFO, payload={"cmd": "generate"})
 @bot.on.message(state=MenuState.INFO, text=["/generate", "/сгенерировать", "сгенерировать"])
 async def generate_handler(message: Message):
-    # public, private = make_key_pair(random.randint(8, 16))
-    public, private = make_key_pair(16)
+    try:
+        public, private = make_key_pair(20)
+    except Exception as e:
+        logger.exception(e)
+        await message.answer(error_message, keyboard=keyboard_main.get_json())
+        return
     await message.answer(generate_message.format(public, private), keyboard=keyboard_main.get_json())
 
 
@@ -84,7 +88,7 @@ async def decrypt_key_handler(message: Message):
         ctx_storage.set(f"{message.peer_id}n", n)
         ctx_storage.set(f"{message.peer_id}d", d)
     except ValueError:
-        await message.answer(error_message, keyboard=keyboard_decrypt.get_json())
+        await message.answer(wrong_message, keyboard=keyboard_decrypt.get_json())
         return
     await message.answer(decrypt_text_message, keyboard=keyboard_decrypt.get_json())
     await bot.state_dispenser.set(message.peer_id, MenuState.DECRYPT_TEXT)
@@ -93,10 +97,10 @@ async def decrypt_key_handler(message: Message):
 @bot.on.message(state=MenuState.DECRYPT_TEXT)
 async def decrypt_text_handler(message: Message):
     try:
-        text = int(message.text)
         d = int(ctx_storage.get(f"{message.peer_id}d"))
         n = int(ctx_storage.get(f"{message.peer_id}n"))
-        await message.answer(decrypt_out_message.format(str(pow(text, d, n))), keyboard=keyboard_main.get_json())
+        await message.answer(decrypt_out_message.format(encoding(key=(n, d), text=message.text)),
+                             keyboard=keyboard_main.get_json())
     except Exception as e:
         logger.exception(e)
         return
@@ -112,12 +116,13 @@ async def encrypt_handler(message: Message):
 
 @bot.on.message(state=MenuState.ENCRYPT_KEY)
 async def encrypt_key_handler(message: Message):
+    # TODO: Make 'generate' button in encrypt keyboard
     try:
         n, d = [int(x) for x in message.text.split()]
         ctx_storage.set(f"{message.peer_id}n", n)
         ctx_storage.set(f"{message.peer_id}d", d)
     except ValueError:
-        await message.answer(error_message, keyboard=keyboard_decrypt.get_json())
+        await message.answer(wrong_message, keyboard=keyboard_decrypt.get_json())
         return
     await message.answer(encrypt_text_message, keyboard=keyboard_decrypt.get_json())
     await bot.state_dispenser.set(message.peer_id, MenuState.ENCRYPT_TEXT)
@@ -126,10 +131,10 @@ async def encrypt_key_handler(message: Message):
 @bot.on.message(state=MenuState.ENCRYPT_TEXT)
 async def encrypt_text_handler(message: Message):
     try:
-        text = int(message.text)
         d = int(ctx_storage.get(f"{message.peer_id}d"))
         n = int(ctx_storage.get(f"{message.peer_id}n"))
-        await message.answer(encrypt_out_message.format(str(pow(text, d, n))), keyboard=keyboard_main.get_json())
+        await message.answer(encrypt_out_message.format(encoding(key=(n, d), text=message.text)),
+                             keyboard=keyboard_main.get_json())
     except Exception as e:
         logger.exception(e)
         return
