@@ -2,10 +2,9 @@ import random
 
 
 def get_primes(start, stop):
+    primes = [2]
     if start >= stop:
         return []
-
-    primes = [2]
 
     for n in range(3, stop + 1, 2):
         for p in primes:
@@ -28,10 +27,6 @@ def are_relatively_prime(a, b):
 
 
 def make_key_pair(length):
-    if length < 4:
-        raise ValueError('cannot generate a key of length less '
-                         'than 4 (got {!r})'.format(length))
-
     n_min = 1 << (length - 1)
     n_max = (1 << length) - 1
 
@@ -49,22 +44,23 @@ def make_key_pair(length):
             q = random.choice(q_candidates)
             break
     else:
-        raise AssertionError("cannot find 'p' and 'q' for a key of "
-                             "length={!r}".format(length))
+        raise Exception('Something went wrong...')
 
     stop = (p - 1) * (q - 1)
     for e in range(3, stop, 2):
         if are_relatively_prime(e, stop):
             break
     else:
-        raise AssertionError("cannot find 'e' with p={!r} "
-                             "and q={!r}".format(p, q))
+        raise Exception('Something went wrong...')
 
     for d in range(3, stop, 2):
         if d * e % stop == 1:
             break
     else:
-        raise AssertionError("cannot find 'd' with p={!r}, q={!r} "
-                             "and e={!r}".format(p, q, e))
+        raise Exception('Something went wrong...')
 
     return (p * q, e), (p * q, d)
+
+
+def encoding(key, text):
+    return ''.join([chr(pow(ord(x), key[1], key[0])) for x in text])
