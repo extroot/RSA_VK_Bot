@@ -8,7 +8,7 @@ from vkbottle import BaseStateGroup
 from vkbottle.bot import Bot
 from vkbottle.bot import Message
 
-from myrsa import make_key_pair, encoding
+from myrsa import make_key_pair, encoding, decryption
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger()
@@ -99,7 +99,7 @@ async def decrypt_text_handler(message: Message):
     try:
         d = int(ctx_storage.get(f"{message.peer_id}d"))
         n = int(ctx_storage.get(f"{message.peer_id}n"))
-        await message.answer(decrypt_out_message.format(encoding(key=(n, d), text=message.text)),
+        await message.answer(decrypt_out_message.format(decryption(key=(n, d), text=message.text)),
                              keyboard=keyboard_main.get_json())
     except Exception as e:
         logger.exception(e)
@@ -133,6 +133,7 @@ async def encrypt_text_handler(message: Message):
     try:
         d = int(ctx_storage.get(f"{message.peer_id}d"))
         n = int(ctx_storage.get(f"{message.peer_id}n"))
+        print(encoding(key=(n, d), text=message.text))
         await message.answer(encrypt_out_message.format(encoding(key=(n, d), text=message.text)),
                              keyboard=keyboard_main.get_json())
     except Exception as e:

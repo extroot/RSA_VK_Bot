@@ -63,4 +63,17 @@ def make_key_pair(length):
 
 
 def encoding(key, text):
-    return ''.join([chr(pow(ord(x), key[1], key[0])) for x in text])
+    try:
+        return ' '.join([str(pow(ord(x), key[1], key[0])) for x in text])
+    except:
+        return 'Что-то пошло не так.'
+
+
+def decryption(key, text):
+    try:
+        return ''.join([chr(pow(int(x), key[1], key[0])) for x in text.split()])
+    except:
+        return 'Что-то пошло не так.'
+
+
+print(decryption((785507, 111943), encoding((785507, 7), 'Текст')))
